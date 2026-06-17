@@ -4,13 +4,13 @@ Local library server
 =====================
 
 Tiny local backend that reads your YouTube Music library via `ytmusicapi`
-and serves it as JSON, so the React frontend (index.html) has something to
+and serves it as JSON, so the frontend (index.html/app.js) has something to
 fetch and display. This never touches the official YouTube Data API, that
 part isn't needed just to list + play your own library.
 
 SETUP (one-time, reuses the browser.json from the embeddability checker)
 --------------------------------------------------------------------
-  pip install flask flask-cors ytmusicapi --break-system-packages
+  pip install flask ytmusicapi --break-system-packages
 
   If you don't already have browser.json from before, run:
     ytmusicapi browser
@@ -31,7 +31,6 @@ import os
 import sys
 
 from flask import Flask, jsonify, send_from_directory
-from flask_cors import CORS
 from ytmusicapi import YTMusic
 
 AUTH_FILE = "browser.json"
@@ -44,12 +43,27 @@ if not os.path.exists(AUTH_FILE):
     )
 
 app = Flask(__name__)
-CORS(app)  # harmless to keep even now that everything is same-origin
+# No flask-cors here on purpose: everything is same-origin now (the page is
+# served by this same server), and this folder also holds browser.json /
+# youtube_api_key.txt. Wide-open CORS plus serving the whole directory would
+# let any website you visit in another tab read those over localhost. The
+# routes below serve only the three specific frontend files, nothing else.
 
 
 @app.route("/")
 def index():
     return send_from_directory(APP_DIR, "index.html")
+
+
+@app.route("/style.css")
+def style():
+    return send_from_directory(APP_DIR, "style.css")
+
+
+@app.route("/app.js")
+def app_js():
+    return send_from_directory(APP_DIR, "app.js")
+
 
 yt = YTMusic(AUTH_FILE)
 _cache = None

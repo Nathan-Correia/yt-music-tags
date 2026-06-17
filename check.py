@@ -159,6 +159,15 @@ def is_region_blocked(content_details: dict, country: str) -> bool:
     return False
 
 
+def is_age_restricted(content_details: dict) -> bool:
+    """Age-restricted videos can't be embedded ANYWHERE, regardless of the
+    owner's 'allow embedding' setting (status.embeddable can still say
+    True). This is a separate, YouTube-enforced restriction, flagged here
+    instead via contentRating.ytRating == 'ytAgeRestricted'."""
+    rating = content_details.get("contentRating", {})
+    return rating.get("ytRating") == "ytAgeRestricted"
+
+
 def main():
     if not YOUTUBE_API_KEY:
         sys.exit(
@@ -194,16 +203,21 @@ def main():
             found_ids.add(vid)
             status = item.get("status", {})
             content = item.get("contentDetails", {})
-            embeddable = status.get("embeddable", True)
+            embeddable_raw = status.get("embeddable")  # None if the field is just absent
+            embeddable_unknown = embeddable_raw is None
+            embeddable = True if embeddable_unknown else embeddable_raw
             region_blocked = is_region_blocked(content, YOUR_COUNTRY)
+            age_restricted = is_age_restricted(content)
             track = by_id[vid]
             results.append(
                 {
                     **track,
                     "embeddable": embeddable,
+                    "embeddable_unknown": embeddable_unknown,
                     "region_blocked": region_blocked,
-                    "playable": embeddable and not region_blocked,
-                    "note": "",
+                    "age_restricted": age_restricted,
+                    "playable": embeddable and not region_blocked and not age_restricted,
+                    "note": "embeddable field missing from API response" if embeddable_unknown else "",
                 }
             )
         print(f"  batch {batch_num}/{total_batches} checked")
@@ -218,7 +232,9 @@ def main():
             {
                 **track,
                 "embeddable": False,
+                "embeddable_unknown": False,
                 "region_blocked": False,
+                "age_restricted": False,
                 "playable": False,
                 "note": "not returned by API (likely removed/private)",
             }
@@ -228,6 +244,8 @@ def main():
     total = len(results)
     playable = sum(1 for r in results if r["playable"])
     not_embeddable = sum(1 for r in results if not r["embeddable"])
+    embeddable_unknown = sum(1 for r in results if r["embeddable_unknown"])
+    age_restricted = sum(1 for r in results if r["age_restricted"])
     region_blocked = sum(1 for r in results if r["region_blocked"])
     missing = len(missing_ids)
 
@@ -236,6 +254,8 @@ def main():
     if total:
         print(f"Playable in an embed:        {playable} ({playable / total:.1%})")
     print(f"Owner disabled embedding:    {not_embeddable}")
+    print(f"  (of which, field was missing — unverified, assumed OK): {embeddable_unknown}")
+    print(f"Age-restricted (no embeds):  {age_restricted}")
     print(f"Region-blocked in {YOUR_COUNTRY}:          {region_blocked}")
     print(f"Not found (likely removed):  {missing}")
 
@@ -247,7 +267,9 @@ def main():
                 "title",
                 "artist",
                 "embeddable",
+                "embeddable_unknown",
                 "region_blocked",
+                "age_restricted",
                 "playable",
                 "note",
             ],
