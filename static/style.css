@@ -1,0 +1,306 @@
+:root {
+  --bg:           #181c1b;
+  --surface:      #1f2622;
+  --surface2:     #252d28;
+  --border:       #2e3830;
+  --accent:       #2e6b3e;
+  --accent-light: #3d8f52;
+  --accent-dim:   #1d4428;
+  --text:         #d4ddd6;
+  --text-muted:   #6b7d70;
+  --error:        #c0392b;
+  --danger:       #8b2222;
+  --danger-hover: #a82a2a;
+  --input-bg:     #1a211c;
+  --row-hover:    rgba(46, 107, 62, 0.07);
+  --row-selected: rgba(46, 107, 62, 0.18);
+  --scrollbar:    #2e3830;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+
+/* ── Header ── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-light);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.separator {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+/* ── Buttons ── */
+button {
+  background: var(--accent);
+  color: var(--text);
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+
+button:hover  { background: var(--accent-light); }
+button:active { filter: brightness(0.88); }
+
+.btn-secondary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+
+.btn-danger {
+  background: var(--danger);
+}
+.btn-danger:hover { background: var(--danger-hover); }
+
+/* ── Inputs / selects ── */
+input[type="text"],
+input[type="number"],
+select {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── Main layout ── */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px 16px 0;
+  gap: 8px;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.filter-row input {
+  flex: 1;
+  max-width: 640px;
+}
+
+.playlist-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.playlist-row input {
+  width: 220px;
+}
+
+/* ── Bulk bar ── */
+.bulk-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+
+.bulk-bar label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ── Status / error messages ── */
+.status-msg {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.error-msg {
+  color: var(--error);
+  font-size: 12px;
+}
+
+.muted { color: var(--text-muted); }
+
+/* ── Utility ── */
+.hidden { display: none !important; }
+
+/* ── Result count ── */
+.result-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 0 2px;
+}
+
+/* ── Table ── */
+.table-wrap {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+}
+
+thead th {
+  background: var(--surface);
+  padding: 7px 9px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  user-select: none;
+}
+
+thead th.th-check {
+  width: 28px;
+  padding: 7px 6px;
+}
+
+td {
+  padding: 4px 9px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: middle;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+tbody tr:hover td { background: var(--row-hover); }
+tbody tr.selected td { background: var(--row-selected); }
+
+/* ── Editable cells ── */
+td.editable {
+  cursor: pointer;
+  min-width: 38px;
+}
+
+td.editable:hover {
+  background: rgba(61, 143, 82, 0.15) !important;
+}
+
+.cell-display { display: inline-block; min-width: 20px; }
+
+.cell-input {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 12px;
+  font-family: inherit;
+  width: 58px;
+}
+
+.cell-input:focus { outline: none; }
+
+.cell-select {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.cell-select:focus { outline: none; }
+
+/* ── Boolean column cells ── */
+td.bool-cell { text-align: center; }
+td.bool-cell input[type="checkbox"] { cursor: pointer; accent-color: var(--accent-light); }
+
+/* ── Checkbox column ── */
+td.td-check { width: 28px; padding: 4px 6px; text-align: center; }
+input[type="checkbox"] { accent-color: var(--accent-light); cursor: pointer; }
+
+/* ── Empty state ── */
+.empty-msg {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.empty-msg strong { color: var(--accent-light); }

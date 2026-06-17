@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YT Music Tag Organizer</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+  <span class="logo">YT Music Tag Organizer</span>
+  <div class="header-controls">
+    <button id="btn-sync">Sync</button>
+    <span id="sync-status" class="status-msg"></span>
+    <div class="separator"></div>
+    <button id="btn-enrich">Enrich View Counts</button>
+    <button id="btn-enrich-stop" class="btn-danger hidden">Stop</button>
+    <span id="enrich-status" class="status-msg"></span>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="filter-row">
+      <input type="text" id="filter-input"
+        placeholder="SQL filter/sort — e.g.  rating > 7 ORDER BY title" />
+      <button id="btn-go">Go</button>
+    </div>
+    <div id="filter-error" class="error-msg hidden"></div>
+
+    <div class="playlist-row">
+      <input type="text" id="playlist-name" placeholder="Playlist name" />
+      <button id="btn-create-playlist">Create / Refresh Playlist</button>
+      <span id="playlist-status" class="status-msg"></span>
+    </div>
+  </div>
+
+  <div class="bulk-bar">
+    <span id="selected-count" class="muted">0 selected</span>
+    <label>Set</label>
+    <select id="bulk-attr"></select>
+    <label>to</label>
+    <input type="text" id="bulk-value" placeholder="value" style="width:80px" />
+    <button id="btn-bulk-apply">Apply to Selected</button>
+    <button id="btn-deselect-all" class="btn-secondary">Deselect All</button>
+    <span id="bulk-status" class="status-msg"></span>
+  </div>
+
+  <div id="table-wrap" class="table-wrap hidden">
+    <table id="songs-table">
+      <thead id="table-head"></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+  <div id="empty-msg" class="empty-msg">Press <strong>Sync</strong> then <strong>Go</strong> to load songs.</div>
+  <div id="result-count" class="muted result-count hidden"></div>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
