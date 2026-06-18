@@ -9,6 +9,9 @@ let attrByName = {};   // name -> attribute meta
 let selectedIds = new Set();
 let enrichPollTimer = null;
 
+const HIDDEN_COLS_KEY = "ytmt_hidden_cols";
+let hiddenCols = new Set(JSON.parse(localStorage.getItem(HIDDEN_COLS_KEY) || "[]"));
+
 // ---------------------------------------------------------------------------
 // Attribute column sections (defines order + section boundaries)
 // voice_gender is intentionally omitted here; it remains in the DB.
@@ -19,18 +22,44 @@ const ATTR_SECTIONS = [
   ["workout", "roadtrip", "fun"],
 ];
 
-// Flat ordered list built once attributes are loaded, with section-start flags.
-let orderedAttrCols = [];  // [{name, meta, sectionStart}]
+// Flat ordered list (all attrs, no filtering) — used for bulk-apply select.
+let orderedAttrCols = [];  // [{name, meta}]
 
 function buildOrderedAttrCols() {
   orderedAttrCols = [];
-  ATTR_SECTIONS.forEach((section, si) => {
-    section.forEach((name, ci) => {
+  ATTR_SECTIONS.forEach(section => {
+    section.forEach(name => {
       const meta = attrByName[name];
-      if (!meta) return;
-      orderedAttrCols.push({ name, meta, sectionStart: ci === 0 && si > 0 });
+      if (meta) orderedAttrCols.push({ name, meta });
     });
   });
+}
+
+// Returns only visible core cols (not hidden).
+function getVisibleCoreCols() {
+  return CORE_COLS.filter(c => !hiddenCols.has(c.key));
+}
+
+const SECTION_COL_CLASSES = ["col-genre", "col-scalar", "col-tag"];
+
+// Returns visible attr cols with correct sectionStart flags based on visibility.
+function getVisibleAttrCols() {
+  const result = [];
+  ATTR_SECTIONS.forEach((section, si) => {
+    let firstVisible = true;
+    section.forEach(name => {
+      const meta = attrByName[name];
+      if (!meta || hiddenCols.has(name)) return;
+      result.push({
+        name,
+        meta,
+        sectionStart: si > 0 && firstVisible,
+        colClass: SECTION_COL_CLASSES[si],
+      });
+      firstVisible = false;
+    });
+  });
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,13 +186,18 @@ function renderTable() {
 
 function renderHead() {
   const thead = document.getElementById("table-head");
+  const visCore = getVisibleCoreCols();
+  const visAttr = getVisibleAttrCols();
 
-  const coreHeaders = CORE_COLS
+  const coreHeaders = visCore
     .map(c => `<th>${esc(c.label)}</th>`)
     .join("");
 
-  const attrHeaders = orderedAttrCols
-    .map(c => `<th${c.sectionStart ? ' class="section-start"' : ""}>${esc(c.name)}</th>`)
+  const attrHeaders = visAttr
+    .map(c => {
+      const cls = [c.colClass, c.sectionStart ? "section-start" : ""].filter(Boolean).join(" ");
+      return `<th class="${cls}" title="${esc(c.name)}">${esc(c.name)}</th>`;
+    })
     .join("");
 
   thead.innerHTML = `<tr>
@@ -190,8 +224,10 @@ function renderBody() {
 function renderRow(song) {
   const vid = song.video_id;
   const sel = selectedIds.has(vid);
+  const visCore = getVisibleCoreCols();
+  const visAttr = getVisibleAttrCols();
 
-  const coreCells = CORE_COLS.map(col => {
+  const coreCells = visCore.map(col => {
     const raw = song[col.key];
     let cellContent;
     if (col.formatHtml) {
@@ -202,17 +238,17 @@ function renderRow(song) {
     return `<td title="${esc(String(raw ?? ""))}">${cellContent}</td>`;
   }).join("");
 
-  const attrCells = orderedAttrCols.map(col => {
+  const attrCells = visAttr.map(col => {
     const { name, meta, sectionStart } = col;
     const val = song[name];
-    const sClass = sectionStart ? " section-start" : "";
+    const base = [col.colClass, sectionStart ? "section-start" : ""].filter(Boolean).join(" ");
 
     if (meta.value_type === "boolean") {
-      return `<td class="bool-cell editable${sClass}" data-vid="${esc(vid)}" data-attr="${esc(name)}">
+      return `<td class="${base} bool-cell editable" data-vid="${esc(vid)}" data-attr="${esc(name)}">
         <input type="checkbox" class="bool-cell-check" data-vid="${esc(vid)}" data-attr="${esc(name)}" ${val ? "checked" : ""}>
       </td>`;
     }
-    return `<td class="editable${sClass}" data-vid="${esc(vid)}" data-attr="${esc(name)}" data-vtype="${esc(meta.value_type)}">
+    return `<td class="${base} editable" data-vid="${esc(vid)}" data-attr="${esc(name)}" data-vtype="${esc(meta.value_type)}">
       <span class="cell-display">${esc(String(val ?? ""))}</span>
     </td>`;
   }).join("");
@@ -476,10 +512,88 @@ document.getElementById("btn-deselect-all").addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Column picker
+// ---------------------------------------------------------------------------
+const PICKER_GROUPS = [
+  {
+    label: "Core",
+    keys: () => CORE_COLS.map(c => ({ key: c.key, label: c.label })),
+  },
+  {
+    label: "Genres",
+    keys: () => ATTR_SECTIONS[0].map(n => ({ key: n, label: n })),
+  },
+  {
+    label: "Attributes",
+    keys: () => ATTR_SECTIONS[1].map(n => ({ key: n, label: n })),
+  },
+  {
+    label: "Tags",
+    keys: () => ATTR_SECTIONS[2].map(n => ({ key: n, label: n })),
+  },
+];
+
+function buildColPicker() {
+  const picker = document.getElementById("col-picker");
+
+  let html = `<div class="picker-header">
+    <span class="picker-title">Columns</span>
+    <button class="picker-show-all">Show all</button>
+  </div>`;
+
+  for (const group of PICKER_GROUPS) {
+    const cols = group.keys();
+    html += `<div class="picker-group">
+      <div class="picker-group-label">${esc(group.label)}</div>
+      <div class="picker-cols">`;
+    for (const col of cols) {
+      const checked = !hiddenCols.has(col.key) ? "checked" : "";
+      html += `<label class="picker-col">
+        <input type="checkbox" ${checked} data-key="${esc(col.key)}">
+        <span>${esc(col.label)}</span>
+      </label>`;
+    }
+    html += `</div></div>`;
+  }
+
+  picker.innerHTML = html;
+
+  picker.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => toggleCol(cb.dataset.key));
+  });
+
+  picker.querySelector(".picker-show-all").addEventListener("click", () => {
+    hiddenCols.clear();
+    localStorage.setItem(HIDDEN_COLS_KEY, "[]");
+    picker.querySelectorAll("input[type=checkbox]").forEach(cb => { cb.checked = true; });
+    if (songs.length > 0) { renderHead(); renderBody(); }
+  });
+}
+
+function toggleCol(key) {
+  if (hiddenCols.has(key)) hiddenCols.delete(key);
+  else hiddenCols.add(key);
+  localStorage.setItem(HIDDEN_COLS_KEY, JSON.stringify([...hiddenCols]));
+  if (songs.length > 0) { renderHead(); renderBody(); }
+}
+
+document.getElementById("btn-col-picker").addEventListener("click", e => {
+  e.stopPropagation();
+  document.getElementById("col-picker").classList.toggle("hidden");
+});
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".col-picker-wrap")) {
+    document.getElementById("col-picker").classList.add("hidden");
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 (async () => {
   await loadAttributes();
+  buildColPicker();
 
   const status = await api("GET", "/api/enrich/status");
   if (status.running) {

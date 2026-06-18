@@ -3,48 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>YT Music Tag Organizer</title>
+  <title>YT Music Tags</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-<header>
-  <span class="logo">YT Music Tag Organizer</span>
-  <div class="header-controls">
-    <button id="btn-sync">Sync</button>
-    <span id="sync-status" class="status-msg"></span>
-    <div class="separator"></div>
-    <button id="btn-enrich">Enrich View Counts</button>
-    <button id="btn-enrich-stop" class="btn-danger hidden">Stop</button>
-    <span id="enrich-status" class="status-msg"></span>
+<!-- ═══════════════════════════════════════════════════════ HEADER -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-pip"></div>
+    <span class="brand-name">YT Music Tags</span>
+  </div>
+
+  <div class="header-ops">
+    <div class="op-cluster">
+      <button id="btn-sync" class="btn btn-accent">Sync Library</button>
+      <span id="sync-status" class="op-status"></span>
+    </div>
+
+    <div class="op-divider"></div>
+
+    <div class="op-cluster">
+      <button id="btn-enrich" class="btn btn-accent">Enrich</button>
+      <button id="btn-enrich-stop" class="btn btn-danger hidden">■ Stop</button>
+      <span id="enrich-status" class="op-status"></span>
+    </div>
   </div>
 </header>
 
-<main>
-  <div class="toolbar">
-    <div class="filter-row">
-      <input type="text" id="filter-input"
-        placeholder="SQL filter/sort — e.g.  rating > 7 ORDER BY title" />
-      <button id="btn-go">Go</button>
-    </div>
-    <div id="filter-error" class="error-msg hidden"></div>
+<!-- ══════════════════════════════════════════════════════ CONTROLS -->
+<div class="controls-strip">
 
-    <div class="playlist-row">
-      <input type="text" id="playlist-name" placeholder="Playlist name" />
-      <button id="btn-create-playlist">Create / Refresh Playlist</button>
-      <span id="playlist-status" class="status-msg"></span>
-    </div>
+  <div class="query-line">
+    <span class="sql-tag">WHERE</span><input
+      id="filter-input"
+      type="text"
+      class="query-input"
+      placeholder="rating > 7  ORDER BY title"
+      autocomplete="off"
+      spellcheck="false"
+    /><button id="btn-go" class="btn btn-accent btn-attached">Run</button>
   </div>
 
-  <div class="bulk-bar">
-    <span id="selected-count" class="muted">0 selected</span>
-    <label>Set</label>
-    <select id="bulk-attr"></select>
-    <label>to</label>
-    <input type="text" id="bulk-value" placeholder="value" style="width:80px" />
-    <button id="btn-bulk-apply">Apply to Selected</button>
-    <button id="btn-deselect-all" class="btn-secondary">Deselect All</button>
-    <span id="bulk-status" class="status-msg"></span>
+  <div id="filter-error" class="filter-error hidden"></div>
+
+  <div class="playlist-line">
+    <input
+      id="playlist-name"
+      type="text"
+      class="playlist-input"
+      placeholder="Playlist name"
+    /><button id="btn-create-playlist" class="btn btn-secondary btn-attached">↗ Create / Refresh</button>
+    <span id="playlist-status" class="op-status playlist-status-text"></span>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════ TABLE AREA -->
+<div class="table-area">
+
+  <div class="table-bar">
+    <span id="selected-count" class="sel-count">0 selected</span>
+    <div class="bulk-group">
+      <span class="bulk-lbl">Set</span>
+      <select id="bulk-attr" class="bulk-select"></select>
+      <span class="bulk-lbl">to</span>
+      <input id="bulk-value" type="text" class="bulk-val" placeholder="value" />
+      <button id="btn-bulk-apply" class="btn btn-accent btn-sm">Apply</button>
+      <button id="btn-deselect-all" class="btn btn-ghost btn-sm">Clear</button>
+    </div>
+    <span id="bulk-status" class="op-status bulk-status-text"></span>
+    <div class="tbar-right">
+      <span id="result-count" class="result-count hidden"></span>
+      <div class="col-picker-wrap">
+        <button id="btn-col-picker" class="btn btn-ghost btn-sm">Columns ▾</button>
+        <div id="col-picker" class="col-picker hidden"></div>
+      </div>
+    </div>
   </div>
 
   <div id="table-wrap" class="table-wrap hidden">
@@ -54,9 +89,11 @@
     </table>
   </div>
 
-  <div id="empty-msg" class="empty-msg">Press <strong>Sync</strong> then <strong>Go</strong> to load songs.</div>
-  <div id="result-count" class="muted result-count hidden"></div>
-</main>
+  <div id="empty-msg" class="empty-state">
+    Press <kbd>Sync Library</kbd> then <kbd>Run</kbd> to load songs.
+  </div>
+
+</div>
 
 <script src="/static/app.js"></script>
 </body>
