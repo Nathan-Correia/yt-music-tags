@@ -266,10 +266,11 @@ function renderRow(song) {
 // Event listeners on tbody
 // ---------------------------------------------------------------------------
 function attachBodyListeners() {
+  // Checkbox column — toggle selection
   document.querySelectorAll(".row-check").forEach(cb => {
     cb.addEventListener("change", e => {
       const vid = e.target.dataset.vid;
-      const tr = e.target.closest("tr");
+      const tr  = e.target.closest("tr");
       if (e.target.checked) { selectedIds.add(vid); tr.classList.add("selected"); }
       else { selectedIds.delete(vid); tr.classList.remove("selected"); }
       updateSelectedCount();
@@ -277,6 +278,23 @@ function attachBodyListeners() {
     });
   });
 
+  // Ctrl+click anywhere on a row → toggle selection
+  document.querySelectorAll("#table-body tr").forEach(tr => {
+    tr.addEventListener("click", e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const vid = tr.dataset.vid;
+      const wasSelected = selectedIds.has(vid);
+      if (wasSelected) { selectedIds.delete(vid); tr.classList.remove("selected"); }
+      else             { selectedIds.add(vid);    tr.classList.add("selected"); }
+      const cb = tr.querySelector(".row-check");
+      if (cb) cb.checked = !wasSelected;
+      updateSelectedCount();
+      syncSelectAll();
+    });
+  });
+
+  // Boolean attribute checkboxes
   document.querySelectorAll(".bool-cell-check").forEach(cb => {
     cb.addEventListener("change", async e => {
       const { vid, attr } = e.target.dataset;
@@ -286,8 +304,10 @@ function attachBodyListeners() {
     });
   });
 
+  // Scalar / enum cells — click to open editor (skip if Ctrl held)
   document.querySelectorAll("td.editable[data-vtype]").forEach(td => {
-    td.addEventListener("click", () => {
+    td.addEventListener("click", e => {
+      if (e.ctrlKey) return;
       if (td.querySelector("input, select")) return;
       openEditor(td);
     });
@@ -300,16 +320,47 @@ function syncSelectAll() {
 }
 
 // ---------------------------------------------------------------------------
+// Cell navigation
+// ---------------------------------------------------------------------------
+function navigateCell(fromVid, fromAttr, direction) {
+  const visAttr = getVisibleAttrCols();
+  const rowIdx  = songs.findIndex(s => s.video_id === fromVid);
+  const colIdx  = visAttr.findIndex(c => c.name === fromAttr);
+  if (rowIdx < 0 || colIdx < 0) return;
+
+  let r = rowIdx, c = colIdx;
+
+  if      (direction === "down")  { r += 1; }
+  else if (direction === "up")    { r -= 1; }
+  else if (direction === "right") {
+    if (c < visAttr.length - 1) c += 1;
+    else if (r < songs.length - 1) { r += 1; c = 0; }
+  }
+  else if (direction === "left")  {
+    if (c > 0) c -= 1;
+    else if (r > 0) { r -= 1; c = visAttr.length - 1; }
+  }
+
+  if (r < 0 || r >= songs.length || c < 0 || c >= visAttr.length) return;
+
+  const td = document.querySelector(
+    `td[data-vid="${CSS.escape(songs[r].video_id)}"][data-attr="${CSS.escape(visAttr[c].name)}"]`
+  );
+  // Only open editors on scalar/enum cells (those with data-vtype)
+  if (td && td.dataset.vtype) openEditor(td);
+}
+
+// ---------------------------------------------------------------------------
 // Inline editor
 // ---------------------------------------------------------------------------
 function openEditor(td) {
-  const vid    = td.dataset.vid;
-  const attr   = td.dataset.attr;
-  const vtype  = td.dataset.vtype;
-  const meta   = attrByName[attr];
-  const song   = songs.find(s => s.video_id === vid);
+  const vid     = td.dataset.vid;
+  const attr    = td.dataset.attr;
+  const vtype   = td.dataset.vtype;
+  const meta    = attrByName[attr];
+  const song    = songs.find(s => s.video_id === vid);
   const current = song ? song[attr] : null;
-  const span   = td.querySelector(".cell-display");
+  const span    = td.querySelector(".cell-display");
 
   let input;
   if (vtype === "enum") {
@@ -335,26 +386,41 @@ function openEditor(td) {
   input.focus();
   if (input.select) input.select();
 
-  async function commit() {
-    const newVal = vtype === "enum"
+  function getVal() {
+    return vtype === "enum"
       ? (input.value || null)
       : (input.value === "" ? null : parseFloat(input.value));
+  }
+
+  async function doCommit(direction) {
+    const newVal = getVal();
+    input.removeEventListener("blur", onBlur);
     input.remove();
     if (span) { span.textContent = newVal ?? ""; span.style.display = ""; }
     if (newVal !== current) {
       await saveAttr(vid, attr, newVal);
       updateSongLocal(vid, attr, newVal);
     }
+    if (direction) navigateCell(vid, attr, direction);
   }
 
-  input.addEventListener("blur", commit);
+  function onBlur() { doCommit(null); }
+
+  input.addEventListener("blur", onBlur);
   input.addEventListener("keydown", e => {
-    if (e.key === "Enter")  { e.preventDefault(); input.blur(); }
     if (e.key === "Escape") {
-      input.removeEventListener("blur", commit);
+      input.removeEventListener("blur", onBlur);
       input.remove();
       if (span) span.style.display = "";
+      return;
     }
+    let dir;
+    if      (e.key === "Enter"      || e.key === "ArrowDown")  dir = "down";
+    else if (e.key === "ArrowUp")                               dir = "up";
+    else if (e.key === "ArrowRight")                            dir = "right";
+    else if (e.key === "ArrowLeft")                             dir = "left";
+    else if (e.key === "Tab")        dir = e.shiftKey ? "left" : "right";
+    if (dir) { e.preventDefault(); doCommit(dir); }
   });
 }
 
